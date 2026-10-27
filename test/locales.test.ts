@@ -13,6 +13,6 @@ for (const file of readdirSync(dir).filter((f) => f.endsWith(".json") && f !== "
 }
 
 test("every locale is listed in the page", () => {
-  const html = readFileSync(join(dir, "../index.html"), "utf8");
-  for (const file of readdirSync(dir)) expect(html).toContain(`${file.replace(".json", "")}: "`);
+  const app = readFileSync(join(dir, "../app.js"), "utf8");
+  for (const file of readdirSync(dir)) expect(app).toContain(`${file.replace(".json", "")}: "`);
 });

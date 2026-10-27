@@ -38,10 +38,14 @@ async function getJson(url: string): Promise<RdapDoc | null> {
 function vcard(entity: RdapEntity, field: string): string | undefined {
   const row = entity.vcardArray?.[1]?.find((r) => r[0] === field);
   const value = row?.[3];
-  if (typeof value === "string") return value.replace(/^(mailto|tel):/i, "").trim() || undefined;
-  if (Array.isArray(value)) return value.filter(Boolean).join(" ").trim() || undefined;
-  return undefined;
+  const raw = typeof value === "string" ? value : Array.isArray(value) ? value.filter(Boolean).join(" ") : "";
+  // RDAP data for an IP block can be written by whoever holds it, i.e. possibly the scammer.
+  const text = raw.replace(/^(mailto|tel):/i, "").replace(/[\p{Cc}\p{Cf}]/gu, "").trim().slice(0, 120);
+  if (field === "email") return EMAIL.test(text) ? text.toLowerCase() : undefined;
+  return text || undefined;
 }
+
+const EMAIL = /^[a-z0-9._%+-]{1,64}@(?:[a-z0-9-]{1,63}\.)+[a-z]{2,24}$/i;
 
 function walk(entities: RdapEntity[] | undefined, visit: (e: RdapEntity) => void): void {
   for (const e of entities ?? []) {

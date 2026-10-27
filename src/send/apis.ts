@@ -76,11 +76,14 @@ export async function cloudflarePhishing(opts: {
   return ids;
 }
 
-/** Public urlscan.io scan: a safe link abuse desks can open instead of the live scam. */
+/**
+ * urlscan.io scan: a safe link abuse desks can open instead of the live scam. Unlisted, not public:
+ * phishing links often carry the victim's e-mail or a token in the query string.
+ */
 export async function urlscan(key: string, url: string, tags: string[]): Promise<string> {
   const data = (await postJson(
     "https://urlscan.io/api/v1/scan/",
-    { url, visibility: "public", tags: ["scamdown", ...tags].slice(0, 10) },
+    { url, visibility: "unlisted", tags: ["scamdown", ...tags].slice(0, 10) },
     { "api-key": key },
   )) as { result?: string };
   if (!data.result) throw new Error("urlscan returned no result link");

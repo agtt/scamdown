@@ -22,6 +22,12 @@ export interface TraceOptions {
   blockPrivate?: boolean;
 }
 
+/** fetch() pinned to public addresses at connect time. Loaded only by the hosted web handler. */
+async function guardedFetch(url: string, init: RequestInit): Promise<Response> {
+  const [{ fetch: undiciFetch }, { guardedDispatcher }] = await Promise.all([import("undici"), import("./guard.ts")]);
+  return (await undiciFetch(url, { ...(init as object), dispatcher: guardedDispatcher() })) as unknown as Response;
+}
+
 async function readLimited(res: Response): Promise<string> {
   if (!res.body) return "";
   const reader = res.body.getReader();
@@ -95,11 +101,12 @@ export async function trace(start: string, opts: TraceOptions = {}): Promise<Hop
     }
     let res: Response;
     try {
-      res = await fetch(url, {
-        redirect: "manual",
-        headers: { "user-agent": USER_AGENT, accept: "text/html,*/*;q=0.8", "accept-language": "en,tr;q=0.8" },
+      const init = {
+        redirect: "manual" as const,
+        headers: { "user-agent": USER_AGENT, accept: "text/html,*/*;q=0.8", "accept-language": "en;q=0.9,*;q=0.5" },
         signal: AbortSignal.timeout(opts.timeoutMs ?? 8000),
-      });
+      };
+      res = opts.blockPrivate ? await guardedFetch(url, init) : await fetch(url, init);
     } catch (e) {
       const err = e as Error & { cause?: { code?: string; message?: string } };
       hop.error = err.cause?.code ?? err.cause?.message ?? err.message;
@@ -121,7 +128,8 @@ export async function trace(start: string, opts: TraceOptions = {}): Promise<Hop
     }
     const html = await readLimited(res).catch(() => "");
     const title = html.match(/<title[^>]*>([^<]{1,300})<\/title>/i)?.[1];
-    if (title) hop.title = decodeEntities(title).replace(/\s+/g, " ").trim();
+    // Attacker-controlled text that ends up in e-mails: no control characters, short.
+    if (title) hop.title = decodeEntities(title).replace(/[\p{Cc}\p{Cf}]/gu, " ").replace(/\s+/g, " ").trim().slice(0, 120);
     const soft = softRedirect(html, url);
     if (!soft) break;
     url = soft.url;

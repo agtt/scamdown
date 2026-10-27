@@ -4,294 +4,169 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>scamdown: report scam links</title>
-<meta name="description" content="Paste a scam link, message or screenshot. See who can take it down and report it in a few clicks. Open source.">
+<meta name="description" content="Paste a scam message, link or screenshot. scamdown finds everyone who can shut it down and reports it. Free and open source.">
+<meta name="theme-color" content="#14213D">
 <style>
-  :root { --fg:#1a1a1a; --muted:#666; --line:#e2e2e2; --bg:#fff; --soft:#f6f6f4; --accent:#b4231b; --ok:#1d7a3a; }
-  @media (prefers-color-scheme: dark) { :root { --fg:#ececec; --muted:#9a9a9a; --line:#333; --bg:#141414; --soft:#1d1d1d; --accent:#ff6b5e; --ok:#5fcf85; } }
+  :root {
+    --paper:#EEF1F5; --card:#FFFFFF; --ink:#14213D; --muted:#5B6880; --line:#D5DCE6;
+    --signal:#FFC531; --danger:#D7263D; --safe:#1F8A5B;
+    --display: "Avenir Next Condensed", "Roboto Condensed", "Arial Narrow", sans-serif-condensed, sans-serif;
+    --body: "Avenir Next", "Segoe UI", system-ui, -apple-system, sans-serif;
+    color-scheme: light dark;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --paper:#0E1626; --card:#16213A; --ink:#EAF0F8; --muted:#93A1B8; --line:#26324D; --danger:#FF5468; --safe:#3CC487; }
+  }
   * { box-sizing: border-box; }
-  body { margin:0; font:16px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; color:var(--fg); background:var(--bg); }
-  main { max-width: 760px; margin: 0 auto; padding: 32px 20px 64px; }
-  header { display:flex; justify-content:space-between; align-items:baseline; gap:12px; }
-  h1 { font-size: 22px; margin: 0; letter-spacing: -0.01em; }
-  h2 { font-size: 15px; margin: 32px 0 8px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); font-weight: 600; }
-  p.lead { color: var(--muted); margin: 6px 0 24px; }
-  button.link { background:none; border:0; color:var(--muted); cursor:pointer; padding:0; font:inherit; text-decoration:underline; }
-  .drop { border: 1.5px dashed var(--line); border-radius: 8px; padding: 12px; background: var(--soft); }
-  .drop.over { border-color: var(--fg); }
-  textarea, input, select { font: inherit; color: inherit; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; width: 100%; }
-  textarea { min-height: 96px; resize: vertical; background: transparent; border: 0; padding: 4px; outline: none; }
-  .shot { display:flex; align-items:center; gap:10px; margin-top:8px; font-size:14px; color:var(--muted); }
-  .shot img { max-height: 64px; border-radius: 4px; border: 1px solid var(--line); }
-  .row { display:grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; margin-top: 12px; }
-  label { font-size: 13px; color: var(--muted); display:block; margin-bottom: 3px; }
-  details { margin-top: 12px; font-size: 14px; }
-  summary { cursor: pointer; color: var(--muted); }
-  .btn { display:inline-block; font: inherit; font-size: 14px; border: 1px solid var(--line); background: var(--bg); color: var(--fg); padding: 6px 12px; border-radius: 6px; cursor: pointer; text-decoration: none; }
-  .btn:hover { border-color: var(--fg); }
-  .btn.primary { background: var(--fg); color: var(--bg); border-color: var(--fg); padding: 10px 18px; font-size: 15px; margin-top: 16px; }
-  .btn[disabled] { opacity: .5; cursor: default; }
-  .status { margin-top: 12px; color: var(--muted); font-size: 14px; min-height: 21px; }
-  .status.err { color: var(--accent); }
-  .link { border-top: 1px solid var(--line); padding: 10px 0; font-size: 14px; }
-  .link code { word-break: break-all; font-size: 13px; }
-  .live { color: var(--accent); font-weight: 600; }
-  .down { color: var(--ok); font-weight: 600; }
-  .warn { color: var(--muted); }
-  .target { border: 1px solid var(--line); border-radius: 8px; padding: 14px; margin-bottom: 10px; }
-  .target.done { opacity: .55; }
-  .target .top { display:flex; justify-content:space-between; gap:8px; align-items:baseline; }
-  .target b { font-size: 15px; }
-  .role { font-size: 12px; color: var(--muted); border: 1px solid var(--line); border-radius: 99px; padding: 1px 8px; white-space: nowrap; }
-  .why { font-size: 13px; color: var(--muted); margin: 6px 0 10px; }
-  .actions { display:flex; flex-wrap: wrap; gap: 6px; align-items:center; }
-  .actions label { margin: 0 0 0 auto; font-size: 13px; display:flex; gap:6px; align-items:center; }
-  .actions input[type=checkbox] { width:auto; }
-  .note { font-size: 13px; color: var(--muted); margin-top: 8px; }
-  footer { margin-top: 48px; padding-top: 16px; border-top: 1px solid var(--line); font-size: 13px; color: var(--muted); }
-  footer a { color: inherit; }
+  body { margin:0; font: 16px/1.55 var(--body); color: var(--ink); background: var(--paper); }
+  :focus-visible { outline: 3px solid var(--signal); outline-offset: 2px; }
+  .wrap { max-width: 620px; margin: 0 auto; padding: 0 20px; }
+
+  .top { display:flex; justify-content:space-between; align-items:center; padding-top: 20px; }
+  .mark { font: 800 22px/1 var(--display); font-stretch: condensed; color: var(--ink); text-decoration: none; letter-spacing: .01em; }
+  .mark::after { content:""; display:block; height:4px; margin-top:3px; background: var(--signal); }
+  #lang { font: inherit; font-size: 14px; color: var(--muted); background: none; border: 0; cursor: pointer; }
+
+  h1 { font: 800 clamp(42px, 9vw, 68px)/.95 var(--display); font-stretch: condensed; letter-spacing: -.01em; margin: 48px 0 14px; }
+  .lead { font-size: 18px; color: var(--muted); margin: 0 0 28px; max-width: 34em; }
+
+  .card { position: relative; background: var(--card); border-radius: 14px; box-shadow: 0 1px 0 var(--line), 0 12px 32px -18px rgba(20,33,61,.35); overflow: hidden; }
+  /* Caution tape: the one loud thing on the page. */
+  .tape { height: 10px; background: repeating-linear-gradient(-45deg, var(--signal) 0 14px, #14213D 14px 28px); }
+  .intake .body { padding: 16px 18px 18px; }
+  .drop { border-radius: 10px; transition: background .15s; }
+  .drop.over { background: color-mix(in srgb, var(--signal) 18%, transparent); }
+  textarea { display:block; font: inherit; font-size: 17px; color: inherit; width: 100%; min-height: 140px; resize: vertical; background: transparent; border: 0; padding: 4px 2px; outline: none; }
+  textarea::placeholder { color: var(--muted); }
+  .shot { display:flex; align-items:center; gap:12px; padding: 8px 0; font-size:14px; color:var(--muted); }
+  .shot img { height: 72px; border-radius: 6px; border: 1px solid var(--line); }
+  .controls { display:flex; justify-content:space-between; align-items:center; gap: 12px; margin-top: 10px; padding-top: 14px; border-top: 1px solid var(--line); }
+  .link { background:none; border:0; color:var(--muted); cursor:pointer; padding:0; font:inherit; font-size:15px; text-decoration: underline; text-underline-offset: 3px; }
+  .link:hover { color: var(--ink); }
+
+  .go { font: 700 18px/1 var(--body); color: #14213D; background: var(--signal); border: 0; border-radius: 10px; padding: 15px 28px; cursor: pointer; }
+  .go:hover { filter: brightness(1.05); }
+  .go:active { transform: translateY(1px); }
+  .go[disabled] { opacity: .55; cursor: default; }
+  .go.wide { width: 100%; margin-top: 18px; }
+  .status { min-height: 24px; margin-top: 10px; font-size: 15px; color: var(--muted); }
+  .status.err { color: var(--danger); }
+
+  .how { list-style: none; counter-reset: s; padding: 0; margin: 28px 0 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; font-size: 14px; color: var(--muted); }
+  .how li { counter-increment: s; }
+  .how li::before { content: counter(s); display:block; font: 800 28px/1 var(--display); font-stretch: condensed; color: var(--ink); margin-bottom: 4px; }
+
+  #results { margin-top: 28px; }
+  #results .body { padding: 20px 18px 18px; }
+  .url + .url { margin-top: 18px; }
+  .url code { display:block; font-size: 15px; word-break: break-all; margin-top: 8px; }
+  .pill { display:inline-flex; align-items:center; gap:8px; font-weight: 700; font-size: 14px; padding: 4px 10px 4px 8px; border-radius: 99px; }
+  .pill i { width: 9px; height: 9px; border-radius: 50%; background: currentColor; }
+  .pill.live { color: var(--danger); background: color-mix(in srgb, var(--danger) 12%, transparent); }
+  .pill.live i { animation: pulse 1.6s ease-out infinite; }
+  .pill.down { color: var(--safe); background: color-mix(in srgb, var(--safe) 12%, transparent); }
+  @keyframes pulse { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--danger) 55%, transparent); } 100% { box-shadow: 0 0 0 9px transparent; } }
+  @media (prefers-reduced-motion: reduce) { .pill.live i { animation: none; } }
+  .url { position: relative; }
+  /* Rubber stamp that lands when the reports are out: the one celebratory moment. */
+  .stamp { position: absolute; right: 0; top: -4px; font: 800 26px/1 var(--display); font-stretch: condensed; letter-spacing: .06em; text-transform: uppercase;
+    color: var(--danger); border: 3px solid var(--danger); border-radius: 6px; padding: 6px 10px; transform: rotate(-9deg); opacity: .9; pointer-events: none;
+    animation: slam .35s cubic-bezier(.2,1.6,.4,1) both; }
+  @keyframes slam { from { transform: rotate(-9deg) scale(2.4); opacity: 0; } to { transform: rotate(-9deg) scale(1); opacity: .9; } }
+  @media (prefers-reduced-motion: reduce) { .stamp { animation: none; } }
+  .url details { margin-top: 6px; font-size: 13px; color: var(--muted); }
+  .url summary { cursor: pointer; width: fit-content; }
+  .url details div { word-break: break-all; }
+
+  .progress { display:flex; align-items:center; gap: 12px; margin-top: 22px; font-size: 14px; color: var(--muted); }
+  .bar { flex: 1; height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; }
+  .bar i { display:block; height: 100%; width: 0; background: var(--safe); transition: width .4s ease; }
+
+  #mailbox { margin: 10px 0 0; font-size: 14px; color: var(--muted); text-align: center; }
+  ul.places { list-style: none; padding: 0; margin: 18px 0 0; }
+  .places li { display:flex; align-items:center; gap: 12px; padding: 12px 0; border-top: 1px solid var(--line); }
+  .tick { flex: none; width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--line); display:grid; place-items:center; }
+  .places li.done .tick { background: var(--safe); border-color: var(--safe); }
+  .places li.done .tick::after { content:""; width: 6px; height: 10px; border: solid #fff; border-width: 0 2px 2px 0; transform: translateY(-1px) rotate(45deg); }
+  .who { flex: 1; min-width: 0; }
+  .who b { display:block; font-weight: 600; }
+  .who small { color: var(--muted); font-size: 13px; }
+  .result { font-size: 13px; color: var(--muted); text-align: right; }
+  .result.ok { color: var(--safe); }
+  .result.err { color: var(--danger); }
+  .btn { flex: none; font: 600 14px/1 var(--body); color: var(--ink); background: transparent; border: 1.5px solid var(--ink); border-radius: 8px; padding: 9px 14px; cursor: pointer; text-decoration: none; white-space: nowrap; }
+  .btn:hover { background: var(--ink); color: var(--card); }
+  .btn[disabled] { opacity: .5; cursor: default; background: transparent; color: var(--ink); }
+  .places li.done .btn { border-color: var(--line); color: var(--muted); }
+  .note { font-size: 14px; color: var(--muted); margin: 16px 0 0; }
+
+  footer { margin: 56px auto 40px; font-size: 13px; color: var(--muted); }
+  footer a { color: inherit; margin-right: 14px; }
+  footer p { margin: 0 0 8px; }
   [hidden] { display: none !important; }
+
+  @media (max-width: 520px) {
+    h1 { margin-top: 32px; }
+    .how { grid-template-columns: 1fr; gap: 10px; }
+    .how li::before { display:inline; font-size: 20px; margin-right: 8px; }
+    .controls { flex-direction: column-reverse; align-items: stretch; }
+    .go { width: 100%; }
+    .places li { flex-wrap: wrap; }
+    .places .btn { margin-left: 34px; }
+  }
 </style>
 </head>
 <body>
-<main>
-  <header>
-    <h1>scamdown</h1>
-    <select id="lang" aria-label="Language" style="width:auto;font-size:14px;padding:4px 8px"></select>
+<div class="wrap">
+  <header class="top">
+    <a class="mark" href="/">scamdown</a>
+    <select id="lang" aria-label="Language"></select>
   </header>
-  <p class="lead" data-t="lead">Paste a scam link, message or screenshot. See who can take it down, then report it in a few clicks.</p>
 
-  <div class="drop" id="drop">
-    <textarea id="text" data-tp="placeholder" placeholder="Paste a link, the SMS / message text, or a screenshot (Ctrl/⌘+V). You can also drop an image here."></textarea>
-    <div class="shot" id="shot" hidden><img id="shotImg" alt=""><span id="shotName"></span><button class="link" id="shotClear" type="button" data-t="remove">remove</button></div>
-  </div>
-  <div style="margin-top:8px"><label class="btn" style="display:inline-block;margin:0"><span data-t="choose">Choose screenshot</span><input type="file" id="file" accept="image/*" hidden></label></div>
+  <main>
+    <h1 data-t="h1">Take scam links down.</h1>
+    <p class="lead" data-t="lead">Got a scam text or e-mail? Paste it here. scamdown finds the host, the domain seller and the browser blocklists, and you report it to all of them in one go. Let's ruin their day.</p>
 
-  <div class="row">
-    <div><label for="category" data-t="type">Type</label>
-      <select id="category">
-        <option value="phishing" data-t="phishing">Phishing (fake login / payment)</option>
-        <option value="scam" data-t="scam">Scam (fake shop, investment, prize)</option>
-        <option value="malware" data-t="malware">Malware download</option>
-      </select></div>
-    <div><label for="brand" data-t="brand">Impersonating</label><input id="brand" data-tp="brandPh" placeholder="e.g. USPS, a bank"></div>
-    <div><label for="country" data-t="country">Your country</label>
-      <select id="country"><option value="">-</option><option>TR</option><option>GB</option><option>US</option></select></div>
-  </div>
-  <div class="row">
-    <div><label for="via" data-t="via">How did it reach you?</label><input id="via" data-tp="viaPh" placeholder="e.g. SMS from +1 202 555 0143 today"></div>
-  </div>
+    <section class="card intake">
+      <div class="tape"></div>
+      <div class="body">
+        <div class="drop" id="drop">
+          <textarea id="text" aria-label="Message" data-tp="placeholder" placeholder="Paste the message, link or screenshot here"></textarea>
+          <div class="shot" id="shot" hidden><img id="shotImg" alt=""><span id="shotName"></span><button class="link" id="shotClear" type="button" data-t="remove">remove</button></div>
+        </div>
+        <input type="file" id="file" accept="image/*" hidden>
+        <div class="controls">
+          <button class="link" id="pickShot" type="button" data-t="choose">Add a screenshot</button>
+          <button class="go" id="go" type="button" data-t="go">Check it</button>
+        </div>
+      </div>
+    </section>
+    <div class="status" id="status" role="status"></div>
 
-  <details id="me">
-    <summary data-t="me">Your name and e-mail (needed by abuse desks and Netcraft)</summary>
-    <div class="row">
-      <div><label for="name" data-t="name">Name</label><input id="name" autocomplete="name"></div>
-      <div><label for="email" data-t="email">E-mail</label><input id="email" type="email" autocomplete="email"></div>
-    </div>
-    <p class="note" data-t="meNote">Saved only in this browser. Abuse desks may reply to it. It is never shown to the scammer.</p>
-  </details>
+    <ol class="how" id="how">
+      <li data-t="step1">Paste the scam message or a screenshot</li>
+      <li data-t="step2">See where the link really goes and who keeps it online</li>
+      <li data-t="step3">Report it everywhere with one press</li>
+    </ol>
 
-  <button class="btn primary" id="go" type="button" data-t="go">Find where to report</button>
-  <div class="status" id="status"></div>
-
-  <section id="results" hidden>
-    <h2 data-t="links">Links</h2>
-    <div id="links"></div>
-    <h2 data-t="where">Where to report</h2>
-    <p class="note" data-t="whereNote">Top first: blocklists put a warning in front of the site within minutes, hosts and registrars take it down.</p>
-    <div id="targets"></div>
-    <p class="note" data-t="attach">E-mail buttons open your own mail app. Attach your screenshot before sending. Reports are written in English, which every abuse desk reads.</p>
-    <p class="note" data-t="lost">Lost money? Call your bank first, then the police.</p>
-  </section>
+    <section class="card" id="results" hidden>
+      <div class="tape"></div>
+      <div class="body">
+        <div id="links"></div>
+        <div class="progress" id="progressRow" hidden><span id="progress"></span><div class="bar"><i id="bar"></i></div></div>
+        <button class="go wide" id="sendAll" type="button" hidden></button>
+        <p id="mailbox" hidden></p>
+        <ul class="places" id="targets"></ul>
+        <p class="note" data-t="lost">Lost money? Call your bank first, then the police.</p>
+      </div>
+    </section>
+  </main>
 
   <footer>
-    <span data-t="foot">Open source. Links you submit are checked from the server and not stored. We never send anything on your behalf except the Netcraft button you press.</span><br>
-    <a href="https://github.com/agtt/scamdown">GitHub</a> ·
-    <a href="https://buymeacoffee.com/agtt" data-t="coffee">Buy me a coffee</a> ·
-    <a href="https://github.com/sponsors/agtt" data-t="sponsor">Sponsor</a> ·
-    <span data-t="cli">CLI and MCP server:</span> <code>npx scamdown</code>
+    <p data-t="foot">Free and open source. No account, no name or e-mail needed. Nothing is sent until you press a button.</p>
+    <a href="https://github.com/agtt/scamdown">GitHub</a><a href="https://buymeacoffee.com/agtt" data-t="coffee">Buy me a coffee</a><a href="https://github.com/sponsors/agtt" data-t="sponsor">Sponsor</a><span data-t="cli">CLI and MCP server:</span> <code>npx scamdown</code>
   </footer>
-</main>
-
-<script>
-// Translations live in /locales/<code>.json. To add a language: add the file and one line here.
-const LANGS = { en: "English", tr: "Türkçe", es: "Español", de: "Deutsch", fr: "Français", pt: "Português" };
-const COUNTRIES = ["TR", "GB", "US"];
-const $ = (id) => document.getElementById(id);
-const pick = () => {
-  if (LANGS[localStorage.lang]) return localStorage.lang;
-  for (const l of navigator.languages || [navigator.language]) if (LANGS[l.slice(0, 2)]) return l.slice(0, 2);
-  return "en";
-};
-let lang = pick();
-let dict = {};
-const cache = {};
-const load = (code) => (cache[code] ??= fetch(`/locales/${code}.json`).then((r) => r.json()).catch(() => ({})));
-const t = (k) => dict[k] ?? k;
-async function setLang(code) {
-  lang = code;
-  const [en, own] = await Promise.all([load("en"), code === "en" ? {} : load(code)]);
-  dict = { ...en, ...own };
-  document.documentElement.lang = code;
-  document.title = t("title");
-  document.querySelectorAll("[data-t]").forEach((el) => (el.textContent = t(el.dataset.t)));
-  document.querySelectorAll("[data-tp]").forEach((el) => (el.placeholder = t(el.dataset.tp)));
-  if (last) render(last);
-}
-$("lang").innerHTML = Object.entries(LANGS).map(([c, n]) => `<option value="${c}">${n}</option>`).join("");
-$("lang").value = lang;
-$("lang").onchange = () => { localStorage.lang = $("lang").value; setLang($("lang").value); };
-
-for (const id of ["name", "email", "country"]) {
-  if (localStorage[id]) $(id).value = localStorage[id];
-  $(id).onchange = () => (localStorage[id] = $(id).value);
-}
-if (!localStorage.country) {
-  const region = (navigator.languages || []).map((l) => l.split("-")[1]?.toUpperCase()).find((r) => COUNTRIES.includes(r));
-  if (region) $("country").value = region;
-}
-if (!localStorage.email) $("me").open = true;
-setLang(lang);
-
-let shot = null;
-function setShot(file) {
-  if (!file || !file.type.startsWith("image/")) return;
-  shot = file;
-  $("shotImg").src = URL.createObjectURL(file);
-  $("shotName").textContent = file.name || "screenshot";
-  $("shot").hidden = false;
-}
-$("shotClear").onclick = () => { shot = null; $("shot").hidden = true; };
-$("file").onchange = (e) => setShot(e.target.files[0]);
-document.addEventListener("paste", (e) => {
-  const item = [...(e.clipboardData?.items ?? [])].find((i) => i.type.startsWith("image/"));
-  if (item) { e.preventDefault(); setShot(item.getAsFile()); }
-});
-const drop = $("drop");
-drop.ondragover = (e) => { e.preventDefault(); drop.classList.add("over"); };
-drop.ondragleave = () => drop.classList.remove("over");
-drop.ondrop = (e) => { e.preventDefault(); drop.classList.remove("over"); setShot(e.dataTransfer.files[0]); };
-
-const status = (msg, err) => { $("status").textContent = msg || ""; $("status").className = "status" + (err ? " err" : ""); };
-async function api(path, body) {
-  const res = await fetch(path, { method: body ? "POST" : "GET", headers: { "content-type": "application/json" }, body: body && JSON.stringify(body) });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw Object.assign(new Error(data.error || res.statusText), { status: res.status });
-  return data;
-}
-const toBase64 = (file) => new Promise((ok) => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(",")[1]); r.readAsDataURL(file); });
-
-async function ocrInBrowser(file) {
-  if (!window.Tesseract) {
-    await new Promise((ok, fail) => { const s = document.createElement("script"); s.src = "https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"; s.onload = ok; s.onerror = fail; document.head.append(s); });
-  }
-  const { data } = await Tesseract.recognize(file, "eng+tur");
-  return data.text;
-}
-
-let config = null;
-let last = null;
-$("go").onclick = async () => {
-  $("go").disabled = true;
-  try {
-    config ??= await api("/api/config");
-    let text = $("text").value;
-    let found = { urls: [] };
-    if (shot) {
-      status(t("reading"));
-      try {
-        if (!config.vision) throw Object.assign(new Error(), { status: 501 });
-        found = await api("/api/extract", { image: { data: await toBase64(shot), mime: shot.type } });
-        if (found.brand && !$("brand").value) $("brand").value = found.brand;
-        if (found.summary && !$("via").value) $("via").value = (found.kind ? found.kind.toUpperCase() + (found.phones?.[0] ? " " + found.phones[0] : "") + ": " : "") + found.summary;
-      } catch (e) {
-        if (e.status !== 501) throw e;
-        text += "\n" + (await ocrInBrowser(shot));
-      }
-    }
-    if (text.trim()) {
-      const more = await api("/api/extract", { text });
-      found.urls = [...new Set([...found.urls, ...more.urls])];
-    }
-    if (!found.urls.length) return status(t("none"), true);
-    status(t("checking"));
-    last = await api("/api/plan", {
-      urls: found.urls, category: $("category").value, brand: $("brand").value, via: $("via").value,
-      country: $("country").value, reporter: { name: $("name").value, email: $("email").value },
-    });
-    render(last);
-    status("");
-  } catch (e) {
-    status(e.message, true);
-  } finally {
-    $("go").disabled = false;
-  }
-};
-
-const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
-// Server tips are English; use the translated one when the locale has it.
-const tipOf = (tg) => dict["tip." + tg.id] ?? (tg.role === "registrar" ? dict["tip.registrar"] : undefined) ?? tg.tip;
-function render(plan) {
-  $("results").hidden = false;
-  $("links").innerHTML = plan.links.map((l) => `
-    <div class="link"><code>${esc(l.url)}</code> <span class="${l.alive ? "live" : "down"}">${l.alive ? t("live") : t("down")}</span>
-      ${l.hops.length > 1 ? `<div class="warn">→ ${l.hops.slice(1).map((h) => esc(h.url)).join(" → ")}</div>` : ""}
-      ${l.hosts.map((h) => `<div class="warn">${esc(h.host)} · ${esc(h.ips.join(", ") || "-")}${h.asn ? ` · AS${h.asn.number} ${esc(h.asn.name)}` : ""}</div>`).join("")}
-      ${l.warnings.map((w) => `<div class="warn">! ${esc(w)}</div>`).join("")}
-    </div>`).join("");
-
-  const doneSet = new Set(JSON.parse(localStorage.done || "[]"));
-  if (!plan.targets.length) return void ($("targets").innerHTML = `<p class="note">${t("gone")}</p>`);
-  $("targets").innerHTML = plan.targets.map((tg, i) => {
-    const key = tg.id + "|" + tg.urls.join(",");
-    const buttons = tg.channels.map((c) => {
-      if (c.kind === "api" && c.api === "netcraft") return `<button class="btn" data-act="netcraft" data-i="${i}">${t("netcraft")}</button>`;
-      if (c.kind === "form") return `<a class="btn" href="${esc(c.url)}" target="_blank" rel="noopener noreferrer" data-act="form" data-i="${i}">${t("openForm")}</a>`;
-      if (c.kind === "email") {
-        const d = tg.draft || {};
-        const q = `subject=${encodeURIComponent(d.subject || "")}&body=${encodeURIComponent(d.body || "")}`;
-        const gm = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(c.to)}&su=${encodeURIComponent(d.subject || "")}&body=${encodeURIComponent(d.body || "")}`;
-        return `<a class="btn" href="mailto:${esc(c.to)}?${q}">${t("mail")} ${esc(c.to)}</a><a class="btn" href="${esc(gm)}" target="_blank" rel="noopener">${t("gmail")}</a>`;
-      }
-      return "";
-    }).join("");
-    return `<div class="target${doneSet.has(key) ? " done" : ""}" data-key="${esc(key)}">
-      <div class="top"><b>${esc(tg.name)}</b><span class="role">${esc(t("role." + tg.role))}</span></div>
-      <div class="why">${tg.why.slice(0, 3).map(esc).join("<br>")}${tipOf(tg) ? `<br>${esc(tipOf(tg))}` : ""}</div>
-      <div class="actions">${buttons}<button class="btn" data-act="copy" data-i="${i}">${t("copy")}</button>
-        <label><input type="checkbox" data-act="done" ${doneSet.has(key) ? "checked" : ""}> ${t("done")}</label></div>
-      ${tg.channels.filter((c) => c.note).map((c) => `<div class="note">${esc(c.note)}</div>`).join("")}
-    </div>`;
-  }).join("");
-}
-
-$("targets").addEventListener("click", async (e) => {
-  const el = e.target.closest("[data-act]");
-  if (!el) return;
-  const tg = last.targets[el.dataset.i];
-  const draft = tg?.draft ? `${tg.draft.subject}\n\n${tg.draft.body}` : "";
-  if (el.dataset.act === "copy" || el.dataset.act === "form") {
-    await navigator.clipboard.writeText(draft).catch(() => {});
-    if (el.dataset.act === "copy") { el.textContent = t("copied"); setTimeout(() => (el.textContent = t("copy")), 1500); }
-  }
-  if (el.dataset.act === "netcraft") {
-    if (!$("email").value) { $("me").open = true; $("email").focus(); return status(t("needEmail"), true); }
-    el.disabled = true;
-    try {
-      await api("/api/netcraft", { email: $("email").value, urls: tg.urls, reason: tg.draft?.body });
-      el.textContent = t("sent");
-      markDone(el.closest(".target"), true);
-    } catch (err) { el.disabled = false; status(err.message, true); }
-  }
-  if (el.dataset.act === "done") markDone(el.closest(".target"), el.checked);
-});
-function markDone(card, on) {
-  const set = new Set(JSON.parse(localStorage.done || "[]"));
-  on ? set.add(card.dataset.key) : set.delete(card.dataset.key);
-  localStorage.done = JSON.stringify([...set]);
-  card.classList.toggle("done", on);
-  const box = card.querySelector("input[type=checkbox]");
-  if (box) box.checked = on;
-}
-</script>
+</div>
+<script src="/app.js" defer></script>
 </body>
 </html>

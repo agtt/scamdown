@@ -82,7 +82,8 @@ async function copy(text: string): Promise<boolean> {
 
 function openUrl(url: string): Promise<boolean> {
   if (process.platform === "darwin") return runQuiet("open", [url]);
-  if (process.platform === "win32") return runQuiet("cmd", ["/c", "start", "", url]);
+  // Not `cmd /c start`: cmd would treat the "&" in mailto links as a command separator.
+  if (process.platform === "win32") return runQuiet("rundll32", ["url.dll,FileProtocolHandler", url]);
   return runQuiet("xdg-open", [url]);
 }
 

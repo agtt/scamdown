@@ -4,19 +4,37 @@
   "description": "Report scam and phishing links to every party that can take them down: blocklists, host, CDN, registrar, network. CLI, MCP server and web page.",
   "license": "MIT",
   "type": "module",
-  "repository": { "type": "git", "url": "git+https://github.com/agtt/scamdown.git" },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/agtt/scamdown.git"
+  },
   "homepage": "https://github.com/agtt/scamdown",
   "funding": [
-    { "type": "buymeacoffee", "url": "https://buymeacoffee.com/agtt" },
-    { "type": "github", "url": "https://github.com/sponsors/agtt" }
+    {
+      "type": "buymeacoffee",
+      "url": "https://buymeacoffee.com/agtt"
+    },
+    {
+      "type": "github",
+      "url": "https://github.com/sponsors/agtt"
+    }
   ],
   "keywords": ["phishing", "scam", "abuse", "takedown", "report", "rdap", "mcp", "security"],
-  "bin": { "scamdown": "dist/cli.js" },
+  "bin": {
+    "scamdown": "dist/cli.js"
+  },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "exports": { ".": { "types": "./dist/index.d.ts", "default": "./dist/index.js" } },
-  "files": ["dist", "public"],
-  "engines": { "node": ">=20" },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": ["dist", "public", "vercel.json"],
+  "engines": {
+    "node": ">=22.19"
+  },
   "scripts": {
     "build": "tsc -p .",
     "typecheck": "tsc -p . --noEmit",
@@ -30,6 +48,7 @@
     "nodemailer": "^10.2.1",
     "postal-mime": "^4.1.4",
     "tldts": "^7.4.19",
+    "undici": "^8.12.3",
     "zod": "^4.6.7"
   },
   "devDependencies": {

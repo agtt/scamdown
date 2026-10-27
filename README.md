@@ -50,7 +50,7 @@ npm i -g scamdown                   # or bun add -g scamdown
 scamdown init                       # name, e-mail, optional SMTP and API keys
 ```
 
-Node 20 or newer.
+Node 22.19 or newer.
 
 ## Use
 
@@ -84,7 +84,36 @@ Nothing is sent without `--send`, and you are asked to confirm. The same link is
 scamdown web          # http://localhost:8787
 ```
 
-Paste a screenshot or a message, get the list of places with one-click buttons. The page is available in English, Turkish, Spanish, German, French and Portuguese (adding one is a single JSON file, see [CONTRIBUTING.md](CONTRIBUTING.md)); the reports themselves are always written in English. The same page deploys to Vercel as is (`vercel deploy`). The hosted version does not send e-mail on anyone's behalf: e-mail buttons open the visitor's own mail app, and the only thing the server submits is Netcraft, when the visitor presses that button with their own address. Screenshots are read in the browser with tesseract.js, or by Claude if the deployment has `ANTHROPIC_API_KEY`.
+Paste a screenshot or a message, press Check, then "Report it". Visitors don't need an account or to give their name or e-mail: Netcraft is reported under the operator's address (`SCAMDOWN_EMAIL`), and every other place gets a single button (a form with the text on the clipboard, or a mail draft). The page is available in English, Turkish, Spanish, German, French and Portuguese (adding one is a single JSON file, see [CONTRIBUTING.md](CONTRIBUTING.md)); the reports themselves are always written in English.
+
+Visitors can also connect Gmail or Outlook: then "Report it" sends the e-mails too, and every report goes out right away from their own address, with the screenshot attached, and each card shows whether it was delivered. The browser talks to Gmail / Outlook directly with a short-lived token; the token never reaches the server and no refresh token is requested. Without a connected mailbox, e-mail buttons open the visitor's mail app.
+
+Screenshots are read in the browser with tesseract.js, or by Claude if the deployment sets `ANTHROPIC_API_KEY` (capped per day with `SCAMDOWN_VISION_DAILY`).
+
+### Deploy for free
+
+The hosted page runs entirely on free tiers: Vercel Hobby for the page and API, Upstash Redis free tier for shared rate limits (optional), browser OCR, and the free Gmail / Microsoft Graph / Netcraft APIs. The only cost is the domain.
+
+```sh
+vercel deploy
+```
+
+| Variable | Needed for |
+|---|---|
+| `SCAMDOWN_SECRET` | Signing plan tokens across instances. Any long random string. Required on Vercel. |
+| `SCAMDOWN_EMAIL` | Address the Netcraft reports go out under (Netcraft sends status mails here). Without it Netcraft is offered as a form. |
+| `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` | Rate limits and "reported N times" counters shared by all instances. Add the Upstash integration in Vercel; without it, limits are per instance. |
+| `GOOGLE_CLIENT_ID` | "Connect Gmail". OAuth client (Web), scope `gmail.send`, your domain as JavaScript origin. Public use needs Google's OAuth verification (free). |
+| `MICROSOFT_CLIENT_ID` | "Connect Outlook". App registration, platform "Single-page application", redirect URI `https://<domain>/oauth.html`, delegated permission `Mail.Send`. |
+| `ANTHROPIC_API_KEY` | Optional, costs money: better screenshot reading. |
+
+### Security
+
+- Every link is fetched without running page code, at most 512 KB, and the connection is refused at connect time if the name resolves to a private or internal address (also after redirects and DNS changes).
+- The endpoints that act (Netcraft, report counters) only accept links from a plan the server signed in the last hour, so the server can't be used to submit arbitrary URLs.
+- Per-IP rate limits on every endpoint, a daily budget for paid screenshot reading, request size limits.
+- Strict Content Security Policy; the only third-party scripts are tesseract.js (pinned, with a subresource integrity hash) and Google's sign-in script when Gmail is connected.
+- Data from scam pages and RDAP (page titles, abuse addresses) is length-limited, stripped of control characters and validated before it goes into a report or the page.
 
 ## MCP server
 
@@ -111,7 +140,7 @@ Tools: `extract_links`, `check_link`, `plan_reports`, `send_reports` (needs expl
 | `SCAMDOWN_NAME`, `SCAMDOWN_EMAIL` | Who the report is from. Abuse desks reply here. |
 | `SCAMDOWN_SMTP_URL`, `SCAMDOWN_SMTP_FROM` | Send e-mails directly. |
 | `SCAMDOWN_COUNTRY` | Add national reporting: `TR` (USOM), `GB` (NCSC), `US` (FTC). |
-| `URLSCAN_API_KEY` | Adds a public urlscan.io scan link to every report, so desks can see the page without visiting it. |
+| `URLSCAN_API_KEY` | Adds an unlisted urlscan.io scan link to every report, so desks can see the page without visiting it. |
 | `ANTHROPIC_API_KEY`, `SCAMDOWN_VISION_MODEL` | Read screenshots with Claude (default `claude-opus-5-5`). |
 | `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` | Cloudflare abuse API instead of the form. |
 
