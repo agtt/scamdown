@@ -101,7 +101,7 @@ vercel deploy
 | Variable | Needed for |
 |---|---|
 | `SCAMDOWN_SECRET` | Signing plan tokens across instances. Any long random string. Required on Vercel. |
-| `SCAMDOWN_EMAIL` | Address the Netcraft reports go out under (Netcraft sends status mails here). Without it Netcraft is offered as a form. |
+| `SCAMDOWN_EMAIL` | Address the Netcraft reports go out under (Netcraft sends status mails here). Without it Netcraft is offered as a form. Each URL is sent at most once a day, capped at `SCAMDOWN_NETCRAFT_DAILY` (default 300) submissions a day. |
 | `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` | Rate limits and "reported N times" counters shared by all instances. Add the Upstash integration in Vercel; without it, limits are per instance. |
 | `GOOGLE_CLIENT_ID` | "Connect Gmail". OAuth client (Web), scope `gmail.send`, your domain as JavaScript origin. Public use needs Google's OAuth verification (free). |
 | `MICROSOFT_CLIENT_ID` | "Connect Outlook". App registration, platform "Single-page application", redirect URI `https://<domain>/oauth.html`, delegated permission `Mail.Send`. |
@@ -110,7 +110,7 @@ vercel deploy
 ### Security
 
 - Every link is fetched without running page code, at most 512 KB, and the connection is refused at connect time if the name resolves to a private or internal address (also after redirects and DNS changes).
-- The endpoints that act (Netcraft, report counters) only accept links from a plan the server signed in the last hour, so the server can't be used to submit arbitrary URLs.
+- The endpoints that act (Netcraft, report counters) only accept the links and places from a plan the server signed in the last hour, once per plan, so the server can't be used to submit arbitrary URLs or inflate counters. The Netcraft report text is written by the server.
 - Per-IP rate limits on every endpoint, a daily budget for paid screenshot reading, request size limits.
 - Strict Content Security Policy; the only third-party scripts are tesseract.js (pinned, with a subresource integrity hash) and Google's sign-in script when Gmail is connected.
 - Data from scam pages and RDAP (page titles, abuse addresses) is length-limited, stripped of control characters and validated before it goes into a report or the page.

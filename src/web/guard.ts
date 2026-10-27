@@ -33,16 +33,25 @@ export async function rateLimit(name: string, id: string, max: number, windowSec
 const SECRET = process.env.SCAMDOWN_SECRET ?? randomBytes(32).toString("hex");
 const b64 = (b: Buffer | string) => Buffer.from(b).toString("base64url");
 
+/** Netcraft submissions per day across all visitors: they go out under the operator's address. */
+export const NETCRAFT_DAILY = Number(process.env.SCAMDOWN_NETCRAFT_DAILY ?? 300);
+
+export interface Plan {
+  urls: string[];
+  /** Target id -> the URLs the plan found for it. */
+  targets: Record<string, string[]>;
+}
+
 /**
- * The plan endpoint signs the URLs it analysed. Endpoints that act on them (Netcraft, report counters)
- * only accept URLs from a recent signed plan, so the server can't be used as an open relay.
+ * The plan endpoint signs the URLs and targets it found. Endpoints that act on them (Netcraft, report
+ * counters) only accept what a recent signed plan contains, so the server can't be used as an open relay.
  */
-export function signPlan(urls: string[], ttlSec = 3600): string {
-  const payload = b64(JSON.stringify({ u: urls, e: Math.floor(Date.now() / 1000) + ttlSec }));
+export function signPlan(urls: string[], targets: Record<string, string[]> = {}, ttlSec = 3600): string {
+  const payload = b64(JSON.stringify({ u: urls, t: targets, e: Math.floor(Date.now() / 1000) + ttlSec }));
   return `${payload}.${b64(createHmac("sha256", SECRET).update(payload).digest())}`;
 }
 
-export function verifyPlan(token: unknown): string[] | null {
+export function verifyPlan(token: unknown): Plan | null {
   if (typeof token !== "string") return null;
   const [payload, sig] = token.split(".");
   if (!payload || !sig) return null;
@@ -50,11 +59,17 @@ export function verifyPlan(token: unknown): string[] | null {
   const given = Buffer.from(sig, "base64url");
   if (given.length !== expected.length || !timingSafeEqual(given, expected)) return null;
   try {
-    const data = JSON.parse(Buffer.from(payload, "base64url").toString()) as { u: string[]; e: number };
-    return data.e > Date.now() / 1000 && Array.isArray(data.u) ? data.u : null;
+    const data = JSON.parse(Buffer.from(payload, "base64url").toString()) as { u: string[]; t?: Record<string, string[]>; e: number };
+    return data.e > Date.now() / 1000 && Array.isArray(data.u) ? { urls: data.u, targets: data.t ?? {} } : null;
   } catch {
     return null;
   }
+}
+
+/** True the first time it is called for this token and name, false after. Lets each plan act once per target. */
+export async function firstUse(token: string, name: string): Promise<boolean> {
+  const id = createHash("sha256").update(token).digest("base64url").slice(0, 22);
+  return (await getStore().incr(`once:${id}:${name}`, 3600).catch(() => 1)) === 1;
 }
 
 /** Key for "how many people reported this URL to this place in the last day". No URL is stored in clear. */

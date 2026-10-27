@@ -211,10 +211,10 @@ async function deliver(i) {
   show(i, t("sending"));
   try {
     if (c.kind === "api") {
-      await api("/api/netcraft", { token: last.token, urls: tg.urls, reason: tg.draft?.body });
+      await api("/api/netcraft", { token: last.token });
     } else {
       await sendMail(c.to, tg.draft.subject, tg.draft.body);
-      api("/api/sent", { token: last.token, target: tg.id, urls: tg.urls }).catch(() => {});
+      api("/api/sent", { token: last.token, target: tg.id }).catch(() => {});
     }
     show(i, t("sent"), "ok");
     markDone(row(i));

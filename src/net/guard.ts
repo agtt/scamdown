@@ -1,6 +1,6 @@
 import type { LookupAddress, LookupOptions } from "node:dns";
 import { isIP } from "node:net";
-import { Agent } from "undici";
+import { Agent, buildConnector } from "undici";
 import { resolveHost } from "./dns.ts";
 import { isPrivateIp } from "./ip.ts";
 
@@ -25,9 +25,28 @@ function guardedLookup(hostname: string, options: LookupOptions, callback: Looku
 }
 
 let agent: Agent | undefined;
+const refused = () => new Error("refusing to connect to a private address");
+
+/**
+ * Node skips the lookup hook for IP literals, so the connected socket's address is checked as well.
+ * That catches every path: literals, odd IPv6 spellings, and anything the lookup missed.
+ */
+const connector = (base: buildConnector.connector): buildConnector.connector => (opts, callback) => {
+  const host = opts.hostname.replace(/^\[|\]$/g, "");
+  if (isIP(host) && isPrivateIp(host)) return void callback(refused(), null);
+  base(opts, (err, socket) => {
+    if (err || !socket) return callback(err ?? refused(), null);
+    const remote = (socket as { remoteAddress?: string }).remoteAddress;
+    if (!remote || isPrivateIp(remote)) {
+      socket.destroy();
+      return callback(refused(), null);
+    }
+    callback(null, socket);
+  });
+};
 
 /** undici dispatcher for fetch() that never reaches internal networks. */
 export function guardedDispatcher(): Agent {
-  agent ??= new Agent({ connect: { lookup: guardedLookup as never, timeout: 8000 } });
+  agent ??= new Agent({ connect: connector(buildConnector({ lookup: guardedLookup as never, timeout: 8000 })) });
   return agent;
 }

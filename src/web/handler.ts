@@ -2,7 +2,7 @@ import { loadConfig } from "../config.ts";
 import { collect, investigate, MAX_URLS } from "../pipeline.ts";
 import { netcraftUrls } from "../send/apis.ts";
 import type { Category } from "../types.ts";
-import { clientIp, LIMITS, rateLimit, reportKey, signPlan, VISION_DAILY, verifyPlan } from "./guard.ts";
+import { clientIp, firstUse, LIMITS, NETCRAFT_DAILY, rateLimit, reportKey, signPlan, VISION_DAILY, verifyPlan } from "./guard.ts";
 import { getStore } from "./store.ts";
 
 /**
@@ -91,7 +91,7 @@ export async function handle(req: Request): Promise<Response> {
         .get(inv.targets.map((t) => reportKey(t.id, t.urls[0] ?? "")))
         .catch(() => inv.targets.map(() => 0));
       return json({
-        token: signPlan(clean),
+        token: signPlan(clean, Object.fromEntries(inv.targets.map((t) => [t.id, t.urls]))),
         links: inv.analyses.map((a) => ({
           url: a.url,
           alive: a.alive,
@@ -104,26 +104,36 @@ export async function handle(req: Request): Promise<Response> {
       });
     }
 
-    const planned = verifyPlan(body.token);
-    const urls = Array.isArray(body.urls) ? body.urls.filter((u): u is string => typeof u === "string") : [];
-    if (!planned || !urls.length || urls.some((u) => !planned.includes(u))) return json({ error: "Plan expired. Check the links again." }, 403);
+    // The token says which URLs each target got; the client only names the target.
+    const plan = verifyPlan(body.token);
+    const token = body.token as string;
+    const target = path === "/api/netcraft" ? "netcraft" : str(body.target, 200);
+    const urls = plan && target ? plan.targets[target] : undefined;
+    if (!plan) return json({ error: "Plan expired. Check the links again." }, 403);
+    if (!urls?.length) return json({ error: "This place is not in the plan." }, 403);
 
     if (path === "/api/netcraft") {
-      // Sent under the operator's address, so visitors stay anonymous.
+      // Sent under the operator's address, so visitors stay anonymous. Each URL goes to Netcraft at most
+      // once a day across all visitors, the daily total is capped, and the reason text is ours, not the client's.
       if (!isEmail(config.email)) return json({ error: "Netcraft is not set up on this server." }, 501);
       const wait = await rateLimit("netcraft", ip, LIMITS.netcraft.max, LIMITS.netcraft.windowSec);
       if (wait) return tooMany(wait);
-      const result = await netcraftUrls(config.email, urls, str(body.reason, 5000) ?? "Phishing / scam site");
-      await Promise.all(urls.map((u) => getStore().incr(reportKey("netcraft", u), DAY).catch(() => 0)));
+      const counts = await getStore().get(urls.map((u) => reportKey("netcraft", u))).catch(() => urls.map(() => 0));
+      const fresh = urls.filter((_, i) => !counts[i]);
+      if (!fresh.length) return json({ result: "Already reported to Netcraft today." });
+      const today = await getStore().incr(`netcraft:${new Date().toISOString().slice(0, 10)}`, DAY).catch(() => 0);
+      if (today > NETCRAFT_DAILY) return json({ error: "Daily Netcraft limit reached. Use the form instead." }, 429);
+      if (!(await firstUse(token, target!))) return json({ result: "Already sent." });
+      const result = await netcraftUrls(config.email, fresh, "Phishing / scam site reported by a member of the public through scamdown.");
+      await Promise.all(fresh.map((u) => getStore().incr(reportKey("netcraft", u), DAY).catch(() => 0)));
       return json({ result });
     }
 
     if (path === "/api/sent") {
       const wait = await rateLimit("sent", ip, LIMITS.sent.max, LIMITS.sent.windowSec);
       if (wait) return tooMany(wait);
-      const target = str(body.target, 200);
-      if (!target) return json({ error: "target required" }, 400);
-      await Promise.all(urls.map((u) => getStore().incr(reportKey(target, u), DAY)));
+      if (!(await firstUse(token, target!))) return json({ ok: true });
+      await Promise.all(urls.map((u) => getStore().incr(reportKey(target!, u), DAY)));
       return json({ ok: true });
     }
   } catch (e) {
