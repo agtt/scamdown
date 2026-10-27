@@ -32,3 +32,7 @@ Claude Desktop / Claude Code için MCP: `claude mcp add scamdown -- npx -y scamd
 Bildirimler senin adını ve e-postanı taşır. Yalnız kendi gördüğün linkleri bildir, aynı linki tekrar tekrar gönderme. scamdown bilgilerini site sahibine asla göndermez.
 
 Para kaybettiysen önce bankanı ara, sonra savcılığa ya da e-Devlet üzerinden şikâyet et.
+
+## Geliştirenler
+
+[agtt](https://github.com/agtt) ve [Ahmet Can Kibar](https://github.com/ackibar).

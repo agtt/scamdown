@@ -3,6 +3,10 @@
   "version": "0.1.0",
   "description": "Report scam and phishing links to every party that can take them down: blocklists, host, CDN, registrar, network. CLI, MCP server and web page.",
   "license": "MIT",
+  "contributors": [
+    { "name": "agtt", "url": "https://github.com/agtt" },
+    { "name": "Ahmet Can Kibar", "url": "https://github.com/ackibar" }
+  ],
   "type": "module",
   "repository": {
     "type": "git",

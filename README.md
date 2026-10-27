@@ -163,6 +163,8 @@ If you lost money: call your bank first, then the police.
 
 The most useful contribution is keeping abuse contacts correct and adding platforms. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
+Maintained by [agtt](https://github.com/agtt) and [Ahmet Can Kibar](https://github.com/ackibar).
+
 ## Support
 
 If scamdown helped take something down, you can [buy me a coffee](https://buymeacoffee.com/agtt) or [sponsor on GitHub](https://github.com/sponsors/agtt). It pays for the hosted page and keeps the contact list maintained.
