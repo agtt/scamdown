@@ -1,0 +1,24 @@
+name: Contact changed
+description: An abuse e-mail or form is wrong, moved, or missing
+labels: [providers]
+body:
+  - type: input
+    id: provider
+    attributes:
+      label: Provider
+      placeholder: Netlify
+    validations:
+      required: true
+  - type: input
+    id: contact
+    attributes:
+      label: Correct e-mail or form URL
+    validations:
+      required: true
+  - type: input
+    id: source
+    attributes:
+      label: Where the provider publishes it
+      description: A page on the provider's own site.
+    validations:
+      required: true
